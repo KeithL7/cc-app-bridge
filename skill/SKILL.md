@@ -34,6 +34,7 @@ POST to `http://127.0.0.1:10087/command` with `{action, args, session}`.
 | `snapshot` | optional target (`window`@w / `title` / `handle`), `maxNodes`(400), `maxDepth`(40), `includeOffscreen`(false) | `{title, class, pid, nodes, truncated, tree}` | **UIA tree** (text) with `@e` refs — use this to read the app and locate elements |
 | `click` | `selector` (`@e`/`@w` ref) **or** `x`,`y`; `button`(left\|right) | `{clicked, via}` | Tries UIA Invoke/Toggle/Select/Expand; falls back to a real pointer click at the element center. `x,y` does a raw screen-coordinate click |
 | `fill` | `selector` (`@e`), `value` | `{filled, mode}` | Sets text. `mode` is `"value"` (UIA ValuePattern) or `"clipboard-paste"` (focus + select-all + paste, for rich editors) |
+| `paste` | `text`, optional `selector` | `{pasted, chars}` | Types Unicode text (incl. Chinese) at the **current keyboard focus** via clipboard + Ctrl+V. Use for apps with no usable `@e` ref (weak-UIA apps): coordinate-`click` the field first to focus it, then `paste`. **Verify the right window is foreground first** (`list_windows` → `foreground`) so keys don't land elsewhere |
 | `key` | `keys` (SendKeys syntax), optional `selector` | `{sent, keys}` | Focuses the target, then sends keystrokes. e.g. `{ENTER}`, `^s` (Ctrl+S), `hi{TAB}there`, `%{F4}` (Alt+F4) |
 | `screenshot` | optional target / `selector`(@e crop) / `region:"screen"`; `format`(png\|jpeg), `quality`, `path`, `raise`(true) | `{path, format, width, height, sizeBytes, mimeType}` | Daemon writes the file and returns its path; open it via the `Read` tool |
 | `close_window` | `window`(@w) / `title` / `handle`, or session target | `{closed, via}` | Closes via UIA WindowPattern or WM_CLOSE |
@@ -129,7 +130,7 @@ first. To submit a form you can also just `click` the submit button's `@e` ref.
 
 ## Known limitations
 
-- **No UIA tree** — games, emulators, and pure-canvas/GPU apps expose little or nothing to `snapshot`. Use `screenshot` + coordinate (`x,y`) `click` for those.
+- **No / weak UIA tree** — games, emulators, pure-canvas/GPU apps, and some Qt/Electron apps (e.g. **WeChat**) expose little or nothing to `snapshot` (it returns ~1 node). Drive these by **screenshot → `Read` → coordinate `click` → `paste` → screenshot-verify**: click a field by `x,y` to focus it, confirm the app is `foreground` via `list_windows`, `paste` the text, screenshot to confirm it landed and was **not** sent, then `key {ENTER}`. Verify at each step so a mis-aimed click is recoverable.
 - **Elevated (admin) apps** — a normal-privilege worker cannot send input to windows running as Administrator (Windows UIPI blocks it). The user would need to run the daemon elevated to drive those.
 - **Synthetic input** — `click`/`fill`/`key` are synthetic. A few apps that hard-check trusted input may ignore them. This is a platform boundary.
 - **Occlusion** — window `screenshot` raises the target first (so it isn't covered). Pass `raise:false` to capture exactly as-is.

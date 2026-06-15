@@ -358,6 +358,17 @@ function Do-Fill($req) {
   return @{ filled = $true; mode = 'clipboard-paste' }
 }
 
+function Do-Paste($req) {
+  $text = Get-Arg $req 'text'
+  if ($null -eq $text) { throw "paste needs 'text'" }
+  $sel = Get-Arg $req 'selector'
+  if ($sel) { try { (Resolve-Element $sel).SetFocus() } catch {} }
+  Set-Clipboard -Value ([string]$text)
+  Start-Sleep -Milliseconds 80
+  [System.Windows.Forms.SendKeys]::SendWait('^v')
+  return @{ pasted = $true; chars = ([string]$text).Length }
+}
+
 function Do-Key($req) {
   $keys = Get-Arg $req 'keys'
   if (-not $keys) { throw "key needs 'keys' (SendKeys syntax: '{ENTER}', '^s', 'hi{TAB}there')" }
@@ -444,6 +455,7 @@ function Dispatch($req) {
     'snapshot'     { return (Do-Snapshot $req) }
     'click'        { return (Do-Click $req) }
     'fill'         { return (Do-Fill $req) }
+    'paste'        { return (Do-Paste $req) }
     'key'          { return (Do-Key $req) }
     'screenshot'   { return (Do-Screenshot $req) }
     'close_window' { return (Do-CloseWindow $req) }
