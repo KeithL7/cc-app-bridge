@@ -92,6 +92,22 @@ curl -s -X POST http://127.0.0.1:10087/command \
 
 详见 [`skill/SKILL.md`](skill/SKILL.md) 与 [`skill/references/operations.md`](skill/references/operations.md)。
 
+## 示例脚本
+
+[`examples/wechat-send.mjs`](examples/wechat-send.mjs) —— 给指定微信好友发消息(参数化:发给谁、发什么)。微信 4.0 几乎不暴露 UIA 树,所以脚本走"截图+坐标"路线,并演示了几条实战经验:从系统托盘恢复窗口、搜索联系人、点击结果、定位输入框。
+
+**默认 dry-run、安全优先**(发消息是对外、不可撤回):
+
+```bash
+# 演练:搜人、开聊天、把消息打进输入框、截图，但【不发送】
+node examples/wechat-send.mjs "申锦辉" "你好"
+
+# 看过截图确认是对的人、对的内容后，再真正发送
+node examples/wechat-send.mjs "申锦辉" "你好" --send
+```
+
+脚本每一步都输出截图路径,务必先肉眼核对"聊天对象是本人""文字已进输入框且未发送"再加 `--send`。
+
 ## 已知边界
 
 - **仅 Windows**（引擎是 Win UIA；macOS/Linux 需另写后端）。
@@ -160,6 +176,18 @@ daemon. Health check: `node "$HOME/.appbridge/bin/appbridge.mjs" status`.
 Typical loop: `launch` → `find_window` (bind a window) → `snapshot` (get `@e` element refs) →
 `click`/`fill`/`key` → `screenshot` to verify. Full reference in
 [`skill/SKILL.md`](skill/SKILL.md).
+
+### Example
+
+[`examples/wechat-send.mjs`](examples/wechat-send.mjs) — send a message to a named WeChat contact.
+WeChat 4.0 barely exposes a UIA tree, so it uses the screenshot + coordinate path (restore from
+tray, search, click result, locate input). **Safe by default** — it dry-runs (types but does not
+send) unless you pass `--send`:
+
+```bash
+node examples/wechat-send.mjs "<contact>" "<message>"          # dry run, screenshots for review
+node examples/wechat-send.mjs "<contact>" "<message>" --send   # actually send
+```
 
 ### Limitations
 
